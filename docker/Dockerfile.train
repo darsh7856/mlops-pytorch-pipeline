@@ -1,0 +1,29 @@
+FROM python:3.11-slim AS dependencies
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/train.txt .
+RUN python -m pip install --upgrade pip \
+    && python -m pip install -r train.txt
+
+FROM dependencies AS training
+
+WORKDIR /app
+
+COPY src/ ./src/
+COPY configs/ ./configs/
+
+ENV PYTHONPATH=/app/src
+
+RUN mkdir -p /app/data /app/checkpoints
+
+ENTRYPOINT ["python", "src/train.py"]
